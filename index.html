@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productivity Dashboard</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="A premium single-page productivity dashboard including task management, daily planner, pomodoro timer, and weather widgets.">
+  <!-- Google Fonts for Figma & Vercel aesthetics -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=Inter:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="light-theme">
+  <!-- Dynamic Background Overlay (Hour-dependent gradient) -->
+  <div id="dynamic-bg-overlay" class="bg-morning"></div>
+
+  <!-- Header -->
+  <header id="main-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-txt">PROD</span>
+        <span class="logo-sub">OS</span>
+      </div>
+      <!-- Date & Time Display -->
+      <div id="date-time-widget">
+        <div id="live-time">12:00:00 AM</div>
+        <div id="live-date">Monday, January 1, 2026</div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <!-- Weather Widget -->
+      <div id="weather-widget" class="weather-mini">
+        <span id="weather-loading" class="widget-loader">Loading weather...</span>
+        <div id="weather-content" class="hidden">
+          <span id="weather-icon">☀️</span>
+          <span id="weather-temp">24°C</span>
+          <span id="weather-city">San Francisco</span>
+          <span id="weather-desc" class="caption-label">Clear Sky</span>
+        </div>
+      </div>
+
+      <!-- Theme Toggle Button -->
+      <button id="theme-toggle-btn" class="theme-switch-btn" aria-label="Toggle Theme">
+        <span class="btn-icon">☀️</span>
+        <span class="btn-text">Light Mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="app-container">
+
+    <!-- 1. DASHBOARD HOME VIEW (Grid of features) -->
+    <section id="dashboard-view" class="active-view">
+      <div class="dashboard-hero">
+        <h1 class="welcome-heading">Design your day. Execute your work.</h1>
+        <p class="welcome-subhead font-mono">CHOOSE A TOOL TO GET STARTED</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Todo Card -->
+        <div class="feature-card block-lime" onclick="openFeature('todo')">
+          <div class="card-eyebrow font-mono">TOOL 01</div>
+          <h2 class="card-title">Todo List</h2>
+          <p class="card-desc">Organize your daily tasks, mark priorities, and clean up completed items.</p>
+          <div class="card-badge font-mono" id="todo-badge">0 tasks</div>
+        </div>
+
+        <!-- Planner Card -->
+        <div class="feature-card block-lilac" onclick="openFeature('planner')">
+          <div class="card-eyebrow font-mono">TOOL 02</div>
+          <h2 class="card-title">Daily Planner</h2>
+          <p class="card-desc">Plan your day hour-by-hour using our time-blocking table block.</p>
+          <div class="card-badge font-mono" id="planner-badge">Empty</div>
+        </div>
+
+        <!-- Goals Card -->
+        <div class="feature-card block-cream" onclick="openFeature('goals')">
+          <div class="card-eyebrow font-mono">TOOL 03</div>
+          <h2 class="card-title">Daily Goals</h2>
+          <p class="card-desc">Set major check-points for today and check your dynamic progress meter.</p>
+          <div class="card-badge font-mono" id="goals-badge">0 of 0 done</div>
+        </div>
+
+        <!-- Pomodoro Card -->
+        <div class="feature-card block-pink" onclick="openFeature('pomodoro')">
+          <div class="card-eyebrow font-mono">TOOL 04</div>
+          <h2 class="card-title">Pomodoro Timer</h2>
+          <p class="card-desc">Boost focus with interval sessions (25m work / 5m break) with audio logs.</p>
+          <div class="card-badge font-mono" id="pomodoro-badge">Ready</div>
+        </div>
+
+        <!-- Quotes Card -->
+        <div class="feature-card block-mint" onclick="openFeature('quotes')">
+          <div class="card-eyebrow font-mono">TOOL 05</div>
+          <h2 class="card-title">Daily Quote</h2>
+          <p class="card-desc">Get inspired with fresh motivational quotes fetched directly from live APIs.</p>
+          <div class="card-badge font-mono" id="quotes-badge">Inspire</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TODO LIST VIEW -->
+    <section id="todo-view" class="feature-view hidden-view">
+      <div class="view-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="view-tag font-mono">TOOL 01 / TASKS</span>
+      </div>
+
+      <div class="view-content-wrapper">
+        <div class="view-main-card">
+          <h2 class="view-title">Manage Your Tasks</h2>
+          
+          <!-- Todo Form -->
+          <div class="todo-input-bar">
+            <input type="text" id="todo-input" placeholder="Type a task and hit add..." aria-label="New task description">
+            <button id="add-task-btn" class="pill-btn">Add Task</button>
+          </div>
+
+          <!-- Todo List -->
+          <ul id="todo-list-container" class="task-list">
+            <!-- Dynamic Todo Items -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. DAILY PLANNER VIEW -->
+    <section id="planner-view" class="feature-view hidden-view">
+      <div class="view-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="view-tag font-mono">TOOL 02 / DAILY BLOCKS</span>
+      </div>
+
+      <div class="view-content-wrapper">
+        <div class="view-main-card">
+          <h2 class="view-title">Hourly Time Blocking</h2>
+          <p class="view-subtitle">Select slot to log your schedule. Autohighlights current hour.</p>
+
+          <div class="planner-grid" id="planner-slots-container">
+            <!-- Dynamic Hourly Slots -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. DAILY GOALS VIEW -->
+    <section id="goals-view" class="feature-view hidden-view">
+      <div class="view-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="view-tag font-mono">TOOL 03 / FOCUS MILESTONES</span>
+      </div>
+
+      <div class="view-content-wrapper">
+        <div class="view-main-card">
+          <h2 class="view-title">Daily Milestones</h2>
+          
+          <!-- Goals Progress Indicator -->
+          <div class="progress-container">
+            <div class="progress-details">
+              <span id="goals-progress-text" class="font-mono">0 of 0 Completed</span>
+              <span id="goals-percentage" class="font-mono">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="goals-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Goals Form -->
+          <div class="goals-input-bar">
+            <input type="text" id="goals-input" placeholder="What is your main goal today?" aria-label="New goal description">
+            <button id="add-goal-btn" class="pill-btn">Add Goal</button>
+          </div>
+
+          <!-- Goals List -->
+          <ul id="goals-list-container" class="goal-list">
+            <!-- Dynamic Goals Items -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. POMODORO TIMER VIEW -->
+    <section id="pomodoro-view" class="feature-view hidden-view">
+      <div class="view-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="view-tag font-mono">TOOL 04 / FOCUS CYCLES</span>
+      </div>
+
+      <div class="view-content-wrapper">
+        <div class="view-main-card centered-card">
+          <span id="pomo-status-label" class="pomo-label font-mono">WORK SESSION</span>
+          <div id="pomo-display" class="pomo-timer-text">25:00</div>
+
+          <div class="pomo-controls">
+            <button id="pomo-start-btn" class="pomo-btn pill-btn primary">Start</button>
+            <button id="pomo-pause-btn" class="pomo-btn pill-btn hidden">Pause</button>
+            <button id="pomo-reset-btn" class="pomo-btn pill-btn secondary">Reset</button>
+          </div>
+
+          <div class="pomo-settings">
+            <button onclick="setPomoDuration(25, 'work')" class="pomo-preset-btn font-mono active-preset">25m Work</button>
+            <button onclick="setPomoDuration(5, 'break')" class="pomo-preset-btn font-mono">5m Break</button>
+            <button onclick="setPomoDuration(15, 'longBreak')" class="pomo-preset-btn font-mono">15m Long Break</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. DAILY QUOTES VIEW -->
+    <section id="quotes-view" class="feature-view hidden-view">
+      <div class="view-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <span class="view-tag font-mono">TOOL 05 / MOTIVATION</span>
+      </div>
+
+      <div class="view-content-wrapper">
+        <div class="view-main-card centered-card">
+          <div class="quote-container">
+            <span class="quote-mark font-serif">“</span>
+            <blockquote id="quote-text">Believe you can and you're halfway there.</blockquote>
+            <cite id="quote-author" class="font-mono">— Theodore Roosevelt</cite>
+          </div>
+
+          <button id="new-quote-btn" class="pill-btn primary">Get New Quote</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer id="main-footer">
+    <div class="footer-inner">
+      <p class="font-mono">PRODOS DASHBOARD • ACCELERATE PROGRESS</p>
+      <p class="footer-desc">Styled with Figma (Light) and Vercel (Dark) specifications.</p>
+    </div>
+  </footer>
+
+  <!-- Audio Element for Pomodoro Alarm -->
+  <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav" preload="auto"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
