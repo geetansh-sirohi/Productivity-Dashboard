@@ -245,23 +245,13 @@ themeBtn.addEventListener("click", () => {
   }
 });
 
-// ── WEATHER INTEGRATION (Open-Meteo, Geolocation & Clickable City Search) ──
+// ── WEATHER INTEGRATION (Open-Meteo & Geolocation) ──
 const fetchWeather = () => {
   weatherLoading.textContent = "Loading weather...";
   weatherLoading.classList.remove("hidden");
   weatherContent.classList.add("hidden");
 
-  // 1. Check if user has a custom city saved in localStorage
-  const savedCity = localStorage.getItem("weather_city");
-  const savedLat = localStorage.getItem("weather_lat");
-  const savedLon = localStorage.getItem("weather_lon");
-
-  if (savedCity && savedLat && savedLon) {
-    callMeteoAPI(parseFloat(savedLat), parseFloat(savedLon), savedCity);
-    return;
-  }
-
-  // 2. Try browser GPS geolocation first for exact local coordinates
+  // Try browser GPS geolocation first for exact local coordinates
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -333,70 +323,6 @@ const callMeteoAPI = (lat, lon, city) => {
 const showWeatherError = () => {
   weatherLoading.textContent = "Weather unavailable";
 };
-
-// Event listener to allow clicking on the city name to edit/search
-weatherCity.addEventListener("click", () => {
-  const currentCity = weatherCity.textContent;
-  
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = currentCity;
-  input.className = "weather-city-input";
-  
-  weatherCity.replaceWith(input);
-  input.focus();
-  input.select();
-
-  const finishEdit = () => {
-    const newCity = input.value.trim();
-    if (newCity && newCity !== currentCity) {
-      weatherLoading.textContent = "Searching...";
-      weatherLoading.classList.remove("hidden");
-      weatherContent.classList.add("hidden");
-
-      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(newCity)}&count=1&language=en&format=json`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.results && data.results.length > 0) {
-            const result = data.results[0];
-            localStorage.setItem("weather_city", result.name);
-            localStorage.setItem("weather_lat", result.latitude);
-            localStorage.setItem("weather_lon", result.longitude);
-            
-            input.replaceWith(weatherCity);
-            fetchWeather();
-          } else {
-            alert("City not found. Please try again.");
-            input.replaceWith(weatherCity);
-            fetchWeather();
-          }
-        })
-        .catch(() => {
-          alert("Error searching city.");
-          input.replaceWith(weatherCity);
-          fetchWeather();
-        });
-    } else {
-      input.replaceWith(weatherCity);
-    }
-  };
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      finishEdit();
-    } else if (e.key === "Escape") {
-      input.replaceWith(weatherCity);
-    }
-  });
-
-  input.addEventListener("blur", () => {
-    setTimeout(() => {
-      if (document.body.contains(input)) {
-        finishEdit();
-      }
-    }, 150);
-  });
-});
 
 const mapWeatherCode = (code) => {
   if (code === 0) return { icon: "☀️", text: "Clear Sky" };
