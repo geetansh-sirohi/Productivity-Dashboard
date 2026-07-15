@@ -245,27 +245,62 @@ themeBtn.addEventListener("click", () => {
   }
 });
 
-// ── WEATHER INTEGRATION (Open-Meteo & ipwho.is coords fallback) ──
+// ── WEATHER INTEGRATION (Open-Meteo, Geolocation & Clickable City Search) ──
 const fetchWeather = () => {
+  weatherLoading.textContent = "Loading weather...";
   weatherLoading.classList.remove("hidden");
   weatherContent.classList.add("hidden");
 
-  // Attempt coordinates call based on IP geolocation using ipwho.is
+  // 1. Check if user has a custom city saved in localStorage
+  const savedCity = localStorage.getItem("weather_city");
+  const savedLat = localStorage.getItem("weather_lat");
+  const savedLon = localStorage.getItem("weather_lon");
+
+  if (savedCity && savedLat && savedLon) {
+    callMeteoAPI(parseFloat(savedLat), parseFloat(savedLon), savedCity);
+    return;
+  }
+
+  // 2. Try browser GPS geolocation first for exact local coordinates
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        // Fetch city name from ipwho.is for coords, or show "My Location"
+        fetch("https://ipwho.is/")
+          .then(res => res.json())
+          .then(data => {
+            const city = (data && data.success && data.city) ? data.city : "My Location";
+            callMeteoAPI(lat, lon, city);
+          })
+          .catch(() => {
+            callMeteoAPI(lat, lon, "My Location");
+          });
+      },
+      () => {
+        // Geolocation denied/failed: Fallback to IP geolocation
+        fetchIPWeather();
+      },
+      { timeout: 5000 }
+    );
+  } else {
+    // Geolocation not supported: Fallback to IP geolocation
+    fetchIPWeather();
+  }
+};
+
+const fetchIPWeather = () => {
   fetch("https://ipwho.is/")
     .then(res => res.json())
     .then(data => {
       if (data && data.success) {
-        const lat = data.latitude;
-        const lon = data.longitude;
-        const city = data.city || "Local Area";
-        callMeteoAPI(lat, lon, city);
+        callMeteoAPI(data.latitude, data.longitude, data.city || "Local Area");
       } else {
-        // Fallback to New York if API returned success: false
         callMeteoAPI(40.7128, -74.0060, "New York");
       }
     })
     .catch(() => {
-      // Offline or network error fallback
       callMeteoAPI(40.7128, -74.0060, "New York");
     });
 };
@@ -275,7 +310,7 @@ const callMeteoAPI = (lat, lon, city) => {
     .then(res => res.json())
     .then(data => {
       if (data.current_weather) {
-        const temp = Math.round(data.current_weather.temperature);
+        const temp = parseFloat(data.current_weather.temperature).toFixed(1);
         const code = data.current_weather.weathercode;
         const weatherInfo = mapWeatherCode(code);
         
@@ -299,6 +334,70 @@ const showWeatherError = () => {
   weatherLoading.textContent = "Weather unavailable";
 };
 
+// Event listener to allow clicking on the city name to edit/search
+weatherCity.addEventListener("click", () => {
+  const currentCity = weatherCity.textContent;
+  
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = currentCity;
+  input.className = "weather-city-input";
+  
+  weatherCity.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const finishEdit = () => {
+    const newCity = input.value.trim();
+    if (newCity && newCity !== currentCity) {
+      weatherLoading.textContent = "Searching...";
+      weatherLoading.classList.remove("hidden");
+      weatherContent.classList.add("hidden");
+
+      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(newCity)}&count=1&language=en&format=json`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.results && data.results.length > 0) {
+            const result = data.results[0];
+            localStorage.setItem("weather_city", result.name);
+            localStorage.setItem("weather_lat", result.latitude);
+            localStorage.setItem("weather_lon", result.longitude);
+            
+            input.replaceWith(weatherCity);
+            fetchWeather();
+          } else {
+            alert("City not found. Please try again.");
+            input.replaceWith(weatherCity);
+            fetchWeather();
+          }
+        })
+        .catch(() => {
+          alert("Error searching city.");
+          input.replaceWith(weatherCity);
+          fetchWeather();
+        });
+    } else {
+      input.replaceWith(weatherCity);
+    }
+  };
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      finishEdit();
+    } else if (e.key === "Escape") {
+      input.replaceWith(weatherCity);
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (document.body.contains(input)) {
+        finishEdit();
+      }
+    }, 150);
+  });
+});
+
 const mapWeatherCode = (code) => {
   if (code === 0) return { icon: "☀️", text: "Clear Sky" };
   if (code >= 1 && code <= 3) return { icon: "⛅", text: "Partly Cloudy" };
@@ -316,13 +415,16 @@ const fetchQuote = () => {
   quoteText.textContent = "Fetching motivational quote...";
   quoteAuthor.textContent = "";
 
-  // ZenQuotes proxy or simple fetch api fallback
-  fetch("https://api.allorigins.win/raw?url=https://zenquotes.io/api/random")
-    .then(res => res.json())
+  // Use a direct Random Quotes API (dummyjson) with cache buster to prevent caching
+  fetch(`https://dummyjson.com/quotes/random?cb=${Date.now()}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
     .then(data => {
-      if (data && data[0]) {
-        quoteText.textContent = data[0].q;
-        quoteAuthor.textContent = `— ${data[0].a}`;
+      if (data && data.quote) {
+        quoteText.textContent = data.quote;
+        quoteAuthor.textContent = `— ${data.author || "Unknown"}`;
       } else {
         loadLocalQuote();
       }
