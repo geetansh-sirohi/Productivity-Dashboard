@@ -245,19 +245,24 @@ themeBtn.addEventListener("click", () => {
   }
 });
 
-// ── WEATHER INTEGRATION (Open-Meteo & ipapi coords fallback) ──
+// ── WEATHER INTEGRATION (Open-Meteo & ipwho.is coords fallback) ──
 const fetchWeather = () => {
   weatherLoading.classList.remove("hidden");
   weatherContent.classList.add("hidden");
 
-  // Attempt coordinates call based on IP geolocation
-  fetch("https://ipapi.co/json/")
+  // Attempt coordinates call based on IP geolocation using ipwho.is
+  fetch("https://ipwho.is/")
     .then(res => res.json())
     .then(data => {
-      const lat = data.latitude || 40.7128;
-      const lon = data.longitude || -74.0060;
-      const city = data.city || "New York";
-      callMeteoAPI(lat, lon, city);
+      if (data && data.success) {
+        const lat = data.latitude;
+        const lon = data.longitude;
+        const city = data.city || "Local Area";
+        callMeteoAPI(lat, lon, city);
+      } else {
+        // Fallback to New York if API returned success: false
+        callMeteoAPI(40.7128, -74.0060, "New York");
+      }
     })
     .catch(() => {
       // Offline or network error fallback
